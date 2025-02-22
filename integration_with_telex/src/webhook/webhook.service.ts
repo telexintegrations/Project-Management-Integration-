@@ -1,41 +1,59 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import * as crypto from 'crypto';
+import { WebhookEventDto } from './webhookevent.dto';
 
 @Injectable()
 export class WebhookService {
   private readonly logger = new Logger(WebhookService.name);
 
-  constructor(private readonly configService: ConfigService) {}
+  processWebhookEvent(payload: WebhookEventDto) {
+    const { events } = payload;
 
-  // Store X-Hook-Secret securely (can be stored in DB instead of env)
-  storeSecret(secret: string) {
-    process.env.X_HOOK_SECRET = secret;
-    this.logger.log(`X-Hook-Secret stored securely.`);
-  }
-
-  // Validate signature to ensure request integrity
-  validateSignature(receivedSignature: string, payload: any): boolean {
-    const storedSecret = process.env.X_HOOK_SECRET || '';
-    if (!storedSecret) {
-      this.logger.error('X-Hook-Secret is missing.');
-      return false;
+    if (!events || events.length === 0) {
+      this.logger.warn('No webhook events received.');
+      return;
     }
 
-    const computedSignature = crypto
-      .createHmac('SHA256', storedSecret)
-      .update(JSON.stringify(payload))
-      .digest('hex');
+    for (const event of events) {
+      const { action, resource, change } = event;
 
-    return crypto.timingSafeEqual(
-      Buffer.from(receivedSignature),
-      Buffer.from(computedSignature),
-    );
+      this.logger.log(`Webhook Event: ${JSON.stringify(event, null, 2)}`);
+
+      switch (resource.resource_type) {
+        case 'project':
+          this.handleProjectEvent(action, resource.gid, change);
+          break;
+        case 'task':
+          this.handleTaskEvent(action, resource.gid, change);
+          break;
+        case 'milestone':
+          this.handleMilestoneEvent(action, resource.gid, change);
+          break;
+        default:
+          this.logger.warn(`Unhandled resource type: ${resource.resource_type}`);
+      }
+    }
   }
 
-  // Process the webhook event (can be extended)
-  async processEvent(payload: any) {
-    this.logger.log(`Received Webhook Event: ${JSON.stringify(payload, null, 2)}`);
-    // Handle the event (e.g., store in DB, trigger actions)
+  private handleProjectEvent(action: string, gid: string, change?: any) {
+    if (change?.field === 'name') this.logger.log(`Project name changed: ${gid}`);
+    if (change?.field === 'notes') this.logger.log(`Project description updated: ${gid}`);
+    if (change?.field === 'due_date') this.logger.log(`Project due date changed: ${gid}`);
+  }
+
+  private handleTaskEvent(action: string, gid: string, change?: any) {
+    if (action === 'added') this.logger.log(`Task added: ${gid}`);
+    if (action === 'removed') this.logger.log(`Task removed: ${gid}`);
+    if (change?.field === 'completed') this.logger.log(`Task completed: ${gid}`);
+    if (change?.field === 'assignee') this.logger.log(`Task assigned: ${gid}`);
+    if (change?.field === 'notes') this.logger.log(`Task description updated: ${gid}`);
+    if (change?.field === 'due_date') this.logger.log(`Task due date updated: ${gid}`);
+  }
+
+  private handleMilestoneEvent(action: string, gid: string, change?: any) {
+    if (action === 'added') this.logger.log(`Milestone added: ${gid}`);
+    if (action === 'removed') this.logger.log(`Milestone removed: ${gid}`);
+    if (change?.field === 'name') this.logger.log(`Milestone name changed: ${gid}`);
+    if (change?.field === 'due_date') this.logger.log(`Milestone due date changed: ${gid}`);
+    if (change?.field === 'completed') this.logger.log(`Milestone marked as completed: ${gid}`);
   }
 }
