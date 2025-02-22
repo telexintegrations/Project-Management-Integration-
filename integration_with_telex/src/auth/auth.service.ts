@@ -27,7 +27,7 @@ export class AuthService {
       });
 
       this.accessToken = response.data.access_token;
-      this.refreshToken = response.data.refresh_token; // Store refresh token for future use
+      this.refreshToken = response.data.refresh_token;
 
       return { message: 'Authentication successful', access_token: this.accessToken };
     } catch (error) {
