@@ -8,5 +8,3 @@ export class WebhookEventDto {
       change?: { field: string; action: string };
     }[];
   }
-  
-  
