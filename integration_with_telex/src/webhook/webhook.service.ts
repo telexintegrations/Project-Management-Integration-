@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { WebhookEventDto } from './webhookevent.dto';
-import { IntegrationsService } from '../telex-integration/integration.service';
+import { IntegrationService } from '../telex-integration/integration.service';
 
 @Injectable()
 export class WebhookService {
   private readonly logger = new Logger(WebhookService.name);
 
-  constructor(private readonly integrationsService: IntegrationsService) {}
+  constructor(private readonly integrationsService: IntegrationService) {}
 
   async processWebhookEvent(payload: WebhookEventDto) {
     const { events } = payload;
@@ -20,7 +20,12 @@ export class WebhookService {
       this.logger.log(`Processing Webhook Event: ${JSON.stringify(event, null, 2)}`);
 
       // Send event to Telex
-      await this.integrationsService.sendToTelex(event);
+      try {
+        await this.integrationsService.sendToTelex(event);
+        this.logger.log('Successfully sent event to Telex');
+      } catch (error) {
+        this.logger.error('Failed to send event to Telex', error);
+      }
 
       switch (event.resource.resource_type) {
         case 'project':
@@ -61,3 +66,4 @@ export class WebhookService {
     if (change?.field === 'completed') this.logger.log(`Milestone marked as completed: ${gid}`);
   }
 }
+
