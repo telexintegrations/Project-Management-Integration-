@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode } from '@nestjs/common';
+import { Controller, Post, Get, Body, HttpCode } from '@nestjs/common';
 import { IntegrationsService } from './integration.service';
 
 @Controller('integration')
@@ -6,10 +6,15 @@ export class IntegrationsController {
   constructor(private readonly integrationsService: IntegrationsService) {}
 
   @Post()
-  @HttpCode(200) 
+  @HttpCode(200)
   async handleAsanaWebhook(@Body() eventData: any) {
     console.log('Received Asana event:', eventData);
-
     await this.integrationsService.sendToTelex(eventData);
   }
+
+  @Get('config')
+  async getTelexConfig() {
+    return this.integrationsService.telexConfig;
+  }
 }
+

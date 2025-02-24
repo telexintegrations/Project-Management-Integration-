@@ -1,11 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { WebhookEventDto } from './webhookevent.dto';
+import { IntegrationsService } from '../telex-integration/integration.service';
 
 @Injectable()
 export class WebhookService {
   private readonly logger = new Logger(WebhookService.name);
 
-  processWebhookEvent(payload: WebhookEventDto) {
+  constructor(private readonly integrationsService: IntegrationsService) {}
+
+  async processWebhookEvent(payload: WebhookEventDto) {
     const { events } = payload;
 
     if (!events || events.length === 0) {
@@ -14,9 +17,11 @@ export class WebhookService {
     }
 
     for (const event of events) {
-      const { action, resource, change } = event;
-
+      const { action, status, resource, change } = event;
       this.logger.log(`Webhook Event: ${JSON.stringify(event, null, 2)}`);
+
+      // Send event to Telex
+      await this.integrationsService.sendToTelex(event);
 
       switch (resource.resource_type) {
         case 'project':
