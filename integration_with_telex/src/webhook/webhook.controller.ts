@@ -21,7 +21,15 @@ export class WebhookController {
       return res.status(200).send();
     }
 
-    this.webhookService.processWebhookEvent(payload);
-    return res.status(200).send();
+    // Respond to Asana immediately before processing
+    res.status(200).send();
+
+    try {
+      this.logger.log('Webhook received, processing in background...');
+      await this.webhookService.processWebhookEvent(payload);
+      this.logger.log('Webhook processing completed.');
+    } catch (error) {
+      this.logger.error('Error processing webhook:', error);
+    }
   }
 }
