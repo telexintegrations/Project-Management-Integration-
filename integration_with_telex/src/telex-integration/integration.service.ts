@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
@@ -7,36 +7,45 @@ import * as path from 'path';
 
 @Injectable()
 export class IntegrationsService {
-  private telexWebhookUrl: string;
-  public telexConfig: any;
+  private readonly logger = new Logger(IntegrationsService.name);
+  private readonly telexWebhookUrl: string;
+  private telexConfig: any;
 
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService
   ) {
-    this.telexWebhookUrl = this.configService.get<string>('TELEX_WEBHOOK_URL');
+    this.telexWebhookUrl = this.configService.get<string>('TELEX_WEBHOOK_URL')
 
     // Load JSON configuration
-    const filePath = path.join(__dirname, '../../src/config/telex.json');
-    this.telexConfig = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    const filePath = path.resolve(__dirname, '../../src/config/integration.json');
+    if (fs.existsSync(filePath)) {
+      this.telexConfig = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    } else {
+      this.logger.warn('integration.json not found, using default values.');
+      this.telexConfig = { message: 'Configuration file missing' };
+    }
+  }
+
+  getIntegrationConfig() {
+    return this.telexConfig;
   }
 
   async sendToTelex(eventData: any) {
-    console.log('Received Asana event:', eventData);
+    this.logger.log('Sending event to Telex:', JSON.stringify(eventData));
 
     const payload = {
-      ...this.telexConfig.data, // Include Telex integration metadata
+      ...this.telexConfig?.data, // Include integration metadata
       event: eventData, // Append event data
-      status: 'success'
-};
+    };
 
     try {
       const response = await firstValueFrom(
         this.httpService.post(this.telexWebhookUrl, payload)
       );
-      console.log('Data successfully sent to Telex:', response.status);
+      this.logger.log(`Data successfully sent to Telex: ${response.status}`);
     } catch (error) {
-      console.error('Error sending data to Telex:', error.message);
+      this.logger.error(`Error sending data to Telex: ${error.message}`);
     }
   }
 }

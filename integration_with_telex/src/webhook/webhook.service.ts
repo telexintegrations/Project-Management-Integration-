@@ -17,24 +17,23 @@ export class WebhookService {
     }
 
     for (const event of events) {
-      const { action, status, resource, change } = event;
-      this.logger.log(`Webhook Event: ${JSON.stringify(event, null, 2)}`);
+      this.logger.log(`Processing Webhook Event: ${JSON.stringify(event, null, 2)}`);
 
       // Send event to Telex
       await this.integrationsService.sendToTelex(event);
 
-      switch (resource.resource_type) {
+      switch (event.resource.resource_type) {
         case 'project':
-          this.handleProjectEvent(action, resource.gid, change);
+          this.handleProjectEvent(event.action, event.resource.gid, event.change);
           break;
         case 'task':
-          this.handleTaskEvent(action, resource.gid, change);
+          this.handleTaskEvent(event.action, event.resource.gid, event.change);
           break;
         case 'milestone':
-          this.handleMilestoneEvent(action, resource.gid, change);
+          this.handleMilestoneEvent(event.action, event.resource.gid, event.change);
           break;
         default:
-          this.logger.warn(`Unhandled resource type: ${resource.resource_type}`);
+          this.logger.warn(`Unhandled resource type: ${event.resource.resource_type}`);
       }
     }
   }
@@ -57,7 +56,7 @@ export class WebhookService {
   private handleMilestoneEvent(action: string, gid: string, change?: any) {
     if (action === 'added') this.logger.log(`Milestone added: ${gid}`);
     if (action === 'removed') this.logger.log(`Milestone removed: ${gid}`);
-    if (change?.field === 'name') this.logger.log(`Milestone name changed: ${gid}`);
+    if (change?.field === 'name') this.logger.log(`🔹 Milestone name changed: ${gid}`);
     if (change?.field === 'due_date') this.logger.log(`Milestone due date changed: ${gid}`);
     if (change?.field === 'completed') this.logger.log(`Milestone marked as completed: ${gid}`);
   }

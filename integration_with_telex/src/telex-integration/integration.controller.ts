@@ -1,20 +1,23 @@
-import { Controller, Post, Get, Body, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Body, Logger } from '@nestjs/common';
 import { IntegrationsService } from './integration.service';
 
-@Controller('integration')
+@Controller('integration.json')
 export class IntegrationsController {
+  private readonly logger = new Logger(IntegrationsController.name);
+
   constructor(private readonly integrationsService: IntegrationsService) {}
 
-  @Post()
-  @HttpCode(200)
-  async handleAsanaWebhook(@Body() eventData: any) {
-    console.log('Received Asana event:', eventData);
-    await this.integrationsService.sendToTelex(eventData);
+  @Get()
+  getIntegrationConfig() {
+    return this.integrationsService.getIntegrationConfig();
   }
 
-  @Get('config')
-  async getTelexConfig() {
-    return this.integrationsService.telexConfig;
+  @Post()
+  async sendEventToTelex(@Body() eventData: any) {
+    this.logger.log(` Received event: ${JSON.stringify(eventData)}`);
+    await this.integrationsService.sendToTelex(eventData);
+    return { message: 'Event sent to Telex' };
   }
 }
+
 
