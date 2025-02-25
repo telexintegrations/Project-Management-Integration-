@@ -1,14 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { lastValueFrom } from 'rxjs';
 import axios from 'axios';
 
 @Injectable()
 export class IntegrationService {
-  private readonly logger = new Logger(IntegrationService.name);
   private readonly telexWebhookUrl: string;
+  private readonly logger = new Logger(IntegrationService.name);
 
-  constructor(private readonly httpService: HttpService) {
+  constructor() {
     this.telexWebhookUrl =
       process.env.TELEX_WEBHOOK_URL ||
       'https://ping.telex.im/v1/webhooks/0195186d-b707-7f9e-bc7f-c75f841ef281';
@@ -18,8 +16,8 @@ export class IntegrationService {
     return {
       data: {
         date: {
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          created_at: '2025-02-24',
+          updated_at: '2025-02-24',
         },
         descriptions: {
           app_name: 'Project Management',
@@ -53,29 +51,59 @@ export class IntegrationService {
           { label: 'Key', type: 'text', required: true, default: 'ABC123456789' },
           { label: 'Do you want to continue', type: 'checkbox', required: true, default: 'Yes' },
           { label: 'Provide Speed', type: 'number', required: true, default: 1000 },
-          { label: 'Sensitivity Level', type: 'dropdown', required: true, default: 'Low', options: ['High', 'Low'] },
-          { label: 'Alert Admin', type: 'multi-checkbox', required: true, default: 'Super-Admin', options: ['Super-Admin', 'Admin', 'Manager', 'Developer'] },
+          {
+            label: 'Sensitivity Level',
+            type: 'dropdown',
+            required: true,
+            default: 'Low',
+            options: ['High', 'Low'],
+          },
+          {
+            label: 'Alert Admin',
+            type: 'multi-checkbox',
+            required: true,
+            default: 'Super-Admin',
+            options: ['Super-Admin', 'Admin', 'Manager', 'Developer'],
+          },
         ],
-        target_url: this.telexWebhookUrl,
-        tick_url: process.env.TICK_URL || 'https://project-management-integration-yr2i.onrender.com',
+        target_url:
+          process.env.TELEX_WEBHOOK_URL ||
+          'https://ping.telex.im/v1/webhooks/019520bd-a6f6-7664-86d4-1eb140e84342',
+        tick_url:
+          process.env.TICK_URL ||
+          'https://project-management-integration-yr2i.onrender.com',
       },
     };
   }
 
   async sendToTelex(payload: any) {
     try {
-      const headers = {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.TELEX_WEBHOOK_URL}`, 
+      const formattedPayload = {
+        event_name: 'task',
+        username: 'BigLens',
+        status: 'status',
+        data: payload.data || {},
       };
 
-      const response = await axios.post(this.telexWebhookUrl, payload, { headers });
+      const headers = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Telex-Integration-Service/1.0',
+        Authorization: `Bearer ${process.env.TELEX_API_KEY || ''}`, 
+      };
+
+      this.logger.log(`Sending request to Telex: ${this.telexWebhookUrl}`);
+      this.logger.debug(`Payload: ${JSON.stringify(formattedPayload)}`);
+
+      const response = await axios.post(this.telexWebhookUrl, formattedPayload, {
+        headers,
+        timeout: 5000, 
+      });
 
       this.logger.log('Successfully sent event to Telex');
       return response.data;
     } catch (error) {
       this.logger.error(
-        `Failed to send data to Telex: ${error.response?.data || error.message}`,
+        `Failed to send data to Telex: ${error.response?.data?.message || error.message}`,
       );
       throw new Error('Telex notification failed');
     }
