@@ -79,9 +79,9 @@ export class IntegrationService {
   async sendToTelex(payload: any) {
     try {
       const formattedPayload = {
-        event_name: 'task',
-        username: 'BigLens',
-        status: 'status',
+        event_name: payload.event_name || 'task assigned',
+        username: payload.username || 'Admin',
+        status: 'success',
         data: payload.data || {},
       };
 
