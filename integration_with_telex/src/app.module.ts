@@ -6,11 +6,13 @@ import { ProjectController } from './getproject/userproject.controller';
 import { ProjectService } from './getproject/userproject.service';
 import { WebhookModule } from './webhook/webhook.module';
 import { HttpModule } from '@nestjs/axios';
+import { IntegrationController } from './telex-integration/integration.controller';
+import { IntegrationService } from './telex-integration/integration.service';
 
 @Module({
   imports: [ConfigModule.forRoot(), WebhookModule, HttpModule],
-  controllers: [ProjectController, AuthController],
-  providers: [ProjectService, AuthService],
+  controllers: [ProjectController, AuthController, IntegrationController],
+  providers: [ProjectService, AuthService, IntegrationService],
   exports: [AuthService], 
 })
 export class AppModule {}
