@@ -4,6 +4,14 @@ import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class IntegrationService {
+  private readonly telexWebhookUrl: string;
+
+  constructor(private readonly httpService: HttpService) {
+    this.telexWebhookUrl =
+      process.env.TELEX_WEBHOOK_URL ||
+      'https://ping.telex.im/v1/webhooks/0195186d-b707-7f9e-bc7f-c75f841ef281';
+  }
+
   getIntegrationJson() {
     return {
       data: {
@@ -88,5 +96,17 @@ export class IntegrationService {
         tick_url: process.env.TICK_URL || 'https://project-management-integration-yr2i.onrender.com'
       },
     };
+  }
+
+  async sendToTelex(payload: any) {
+    try {
+      const response = await lastValueFrom(
+        this.httpService.post(this.telexWebhookUrl, payload),
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Failed to send data to Telex:', error.message);
+      throw new Error('Telex notification failed');
+    }
   }
 }

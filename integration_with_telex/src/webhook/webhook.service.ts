@@ -19,6 +19,14 @@ export class WebhookService {
     for (const event of events) {
       this.logger.log(`Processing Webhook Event: ${JSON.stringify(event, null, 2)}`);
 
+      // Send event to Telex
+      try {
+        await this.integrationsService.sendToTelex(event);
+        this.logger.log('Successfully sent event to Telex');
+      } catch (error) {
+        this.logger.error('Failed to send event to Telex', error);
+      }
+
       switch (event.resource.resource_type) {
         case 'project':
           this.handleProjectEvent(event.action, event.resource.gid, event.change);

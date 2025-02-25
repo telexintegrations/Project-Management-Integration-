@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body } from '@nestjs/common';
 import { IntegrationService } from './integration.service';
 
-@Controller()
+@Controller('integration')
 export class IntegrationController {
   constructor(private readonly integrationService: IntegrationService) {}
 
@@ -9,7 +9,9 @@ export class IntegrationController {
   getIntegrationJson() {
     return this.integrationService.getIntegrationJson();
   }
+
+  @Post('notify')
+  async notifyTelex(@Body() payload: any) {
+    return this.integrationService.sendToTelex(payload);
+  }
 }
-
-
-
